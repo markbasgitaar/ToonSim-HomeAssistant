@@ -1,0 +1,21 @@
+configuration:
+  toon_ip:
+    name: IP-adres van de Toon
+    description: IP-adres van je gerootte Toon. Nodig voor de eerste firmwarekopie.
+  toon_username:
+    name: SSH-gebruikersnaam
+    description: Meestal root.
+  toon_password:
+    name: SSH-wachtwoord
+    description: Wachtwoord van SSH op de gerootte Toon. Wordt als wachtwoordveld getoond.
+  copy_apps:
+    name: Eigen Toon-apps kopiëren
+    description: Kopieer ook de zelf geïnstalleerde apps van de fysieke Toon bij de eerste setup.
+  copy_settings:
+    name: App-instellingen kopiëren
+    description: Kopieer ook de instellingen van TSC-apps bij de eerste setup.
+  model:
+    name: Toon-model
+    description: Auto detecteert Toon 1 of Toon 2 vanuit de gekopieerde firmware.
+network:
+  8888/TCP: Toon Mobile-webserver. Alleen voor vertrouwde LAN-apparaten; geen eigen inlogbeveiliging.
