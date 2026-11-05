@@ -1,6 +1,6 @@
 # The upstream Linux build uses Qt 5.15 and is built natively for the target
 # architecture by the Home Assistant Supervisor.
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 ARG BUILD_VERSION
 ARG BUILD_ARCH

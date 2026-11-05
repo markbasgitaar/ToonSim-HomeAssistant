@@ -153,6 +153,13 @@ def main() -> int:
     signal.signal(signal.SIGTERM, stop_all)
     signal.signal(signal.SIGINT, stop_all)
 
+    log(f"Python runtime: {sys.version.split()[0]}")
+    if sys.version_info < (3, 12):
+        raise RuntimeError(
+            "ToonSim firmware extraction requires Python 3.12 or newer. "
+            "The app image must be rebuilt from the updated Debian Trixie Dockerfile."
+        )
+
     options = read_options()
     ensure_persistent_directories()
     fetch_firmware(options)
