@@ -1,10 +1,11 @@
 name: "ToonSim"
 slug: "local_toonsim"
-version: "0.1.1"
+version: "0.2.0"
 description: >-
   Simulate a Toon thermostat in Home Assistant OS, with a browser-based touchscreen
   and Toon Mobile.
 url: "https://github.com/ToonSoftwareCollective/toonsim"
+image: "ghcr.io/markbasgitaar/toonsim-homeassistant"
 arch:
   - aarch64
   - amd64
@@ -26,14 +27,18 @@ ports_description:
 backup: cold
 timeout: 30
 options:
+  toon_ip: ""
   toon_username: "root"
+  toon_password: ""
   copy_apps: true
   copy_settings: true
   model: "auto"
+  restore_firmware_backup: false
 schema:
-  toon_ip: "str?"
+  toon_ip: "str"
   toon_username: "str"
-  toon_password: "password?"
+  toon_password: "password"
   copy_apps: bool
   copy_settings: bool
   model: "list(auto|toon1|toon2)"
+  restore_firmware_backup: bool

@@ -1,5 +1,6 @@
-# The upstream Linux build uses Qt 5.15 and is built natively for the target
-# architecture by the Home Assistant Supervisor.
+# This Dockerfile is built by GitHub Actions for ARM64 and AMD64.
+# Home Assistant downloads the finished multi-architecture image from GHCR;
+# the Raspberry Pi no longer compiles ToonSim during installation or updates.
 FROM debian:trixie-slim
 
 ARG BUILD_VERSION
@@ -12,7 +13,8 @@ LABEL \
   io.hass.description="Toon thermostat simulator" \
   io.hass.version="${BUILD_VERSION}" \
   io.hass.type="app" \
-  io.hass.arch="${BUILD_ARCH}"
+  io.hass.arch="${BUILD_ARCH}" \
+  org.opencontainers.image.source="https://github.com/markbasgitaar/ToonSim-HomeAssistant"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     QT_X11_NO_MITSHM=1 \
@@ -48,6 +50,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 \
     && rm -rf /var/lib/apt/lists/*
 
+# Compilation happens on GitHub's native ARM64/AMD64 runners, not on the HA host.
 RUN git clone --depth 1 --branch "${TOONSIM_REF}" \
       https://github.com/ToonSoftwareCollective/toonsim.git /opt/toonsim \
     && mkdir -p /opt/toonsim/src/build-linux \
@@ -55,16 +58,16 @@ RUN git clone --depth 1 --branch "${TOONSIM_REF}" \
     && qmake ../toonsim.pro CONFIG+=release \
     && make -j"${BUILD_JOBS}" \
     && test -x /opt/toonsim/bin/toonsim \
+    && test -f /opt/toonsim/toonsim.sh \
     && rm -rf /opt/toonsim/.git /opt/toonsim/src/build-linux
 
 COPY run.sh /run.sh
 COPY entrypoint.py /opt/ha-toonsim/entrypoint.py
 COPY nginx.conf /etc/nginx/conf.d/toonsim.conf
 
-RUN chmod 0755 /run.sh \
+RUN chmod 0755 /run.sh /opt/toonsim/toonsim.sh \
     && rm -f /etc/nginx/sites-enabled/default \
     && mkdir -p /data/toonsim /run/nginx /opt/ha-toonsim
 
 WORKDIR /opt/toonsim
-
 CMD ["/run.sh"]
