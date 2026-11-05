@@ -1,6 +1,6 @@
 name: "ToonSim"
 slug: "local_toonsim"
-version: "0.2.0"
+version: "0.2.1"
 description: >-
   Simulate a Toon thermostat in Home Assistant OS, with a browser-based touchscreen
   and Toon Mobile.

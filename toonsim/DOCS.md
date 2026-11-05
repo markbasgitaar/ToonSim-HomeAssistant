@@ -1,4 +1,4 @@
-# ToonSim – Home Assistant App 0.2.0
+# ToonSim – Home Assistant App 0.2.1
 
 This app runs the upstream ToonSim project inside a container on Home Assistant OS.
 
