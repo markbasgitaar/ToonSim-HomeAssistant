@@ -1,6 +1,4 @@
-# This Dockerfile is built by GitHub Actions for ARM64 and AMD64.
-# Home Assistant downloads the finished multi-architecture image from GHCR;
-# the Raspberry Pi no longer compiles ToonSim during installation or updates.
+# Built by GitHub Actions for ARM64 and AMD64. HA pulls the finished image from GHCR.
 FROM debian:trixie-slim
 
 ARG BUILD_VERSION
@@ -50,7 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Compilation happens on GitHub's native ARM64/AMD64 runners, not on the HA host.
+# Compilation takes place on the matching native GitHub Actions runner.
 RUN git clone --depth 1 --branch "${TOONSIM_REF}" \
       https://github.com/ToonSoftwareCollective/toonsim.git /opt/toonsim \
     && mkdir -p /opt/toonsim/src/build-linux \

@@ -27,7 +27,6 @@ BACKUP_CURRENT = BACKUP_DIR / "firmware-last-good.tar.gz"
 BACKUP_PREVIOUS = BACKUP_DIR / "firmware-previous.tar.gz"
 BACKUP_METADATA = BACKUP_DIR / "firmware-last-good.json"
 BACKUP_PREVIOUS_METADATA = BACKUP_DIR / "firmware-previous.json"
-FIRMWARE_MARKER = "resources-static-base.rcc"
 REQUIRED_FIRMWARE_FILES = (
     "resources-static-base.rcc",
     "drawables-base.rcc",
@@ -81,7 +80,6 @@ def safe_remove(path: Path) -> None:
 
 
 def replace_firmware_directory(candidate: Path) -> None:
-    """Atomically switch the persistent firmware directory to a validated candidate."""
     displaced = DATA_ROOT / "firmware-replaced"
     safe_remove(displaced)
     had_old = FIRMWARE_DIR.exists()
@@ -97,7 +95,6 @@ def replace_firmware_directory(candidate: Path) -> None:
 
 
 def restore_firmware_backup() -> bool:
-    """Restore the newest valid snapshot; fall back to the previous snapshot if needed."""
     for archive_path in (BACKUP_CURRENT, BACKUP_PREVIOUS):
         if not archive_path.is_file():
             continue
@@ -111,8 +108,6 @@ def restore_firmware_backup() -> bool:
                 log(f"Backup {archive_path.name} is incomplete or invalid; trying the next snapshot")
                 continue
             replace_firmware_directory(candidate)
-            # If the latest archive was damaged, promote the previous valid snapshot
-            # so the next boot does not repeatedly try the broken archive first.
             if archive_path == BACKUP_PREVIOUS:
                 promoted = BACKUP_DIR / "firmware-promoted.tmp.tar.gz"
                 shutil.copy2(BACKUP_PREVIOUS, promoted)
@@ -131,7 +126,6 @@ def restore_firmware_backup() -> bool:
 
 
 def firmware_fingerprint() -> str:
-    """Fast change detector based on relative path, size and modification time."""
     digest = hashlib.sha256()
     for item in sorted(FIRMWARE_DIR.rglob("*")):
         relative = item.relative_to(FIRMWARE_DIR).as_posix()
@@ -175,7 +169,6 @@ def create_firmware_backup() -> None:
         with tarfile.open(temporary_archive, mode="w:gz", compresslevel=5) as archive:
             archive.add(FIRMWARE_DIR, arcname="firmware")
 
-        # Keep one previous known-good snapshot in addition to the latest one.
         if BACKUP_CURRENT.is_file():
             BACKUP_PREVIOUS.unlink(missing_ok=True)
             os.replace(BACKUP_CURRENT, BACKUP_PREVIOUS)
@@ -221,7 +214,6 @@ def fetch_firmware(options: dict) -> None:
     if options.get("copy_settings", True):
         flags.append("--settings")
 
-    # pull_firmware.py writes to APP_ROOT/firmware. Clear only the invalid active copy first.
     safe_remove(FIRMWARE_DIR)
     FIRMWARE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -340,7 +332,6 @@ def main() -> int:
     create_firmware_backup()
 
     model = determine_model(options)
-    # Preserve the native Toon resolutions: Toon 1 = 800x480; Toon 2 = 1024x600.
     width, height = (800, 480) if model == "toon1" else (1024, 600)
     display_env = os.environ.copy()
     display_env.update(
@@ -365,7 +356,6 @@ def main() -> int:
     )
     wait_ready(xvfb, "Xvfb", 2.0)
 
-    # VNC listens only on loopback and is reachable through authenticated HA Ingress.
     vnc = spawn(
         ["x11vnc", "-display", ":0", "-rfbport", "5900", "-forever", "-shared", "-localhost", "-nopw", "-quiet"],
         env=display_env,
@@ -376,14 +366,12 @@ def main() -> int:
     nginx = spawn(["nginx", "-g", "daemon off;"], env=display_env)
     wait_ready(nginx, "nginx", 2.0)
 
-    # Invoke through /bin/sh so a missing executable bit in an upstream checkout
-    # cannot prevent the simulator from launching.
     command = ["/bin/sh", str(APP_ROOT / "toonsim.sh"), "--web-port", "8889"]
     requested_model = str(options.get("model", "auto")).lower()
     if requested_model in ("toon1", "toon2"):
         command.extend(["--size", requested_model])
 
-    log(f"Launching ToonSim; touchscreen via Home Assistant Ingress, Toon Mobile on port 8888")
+    log("Launching ToonSim; touchscreen via Home Assistant Ingress, Toon Mobile on port 8888")
     simulator = spawn(command, env=display_env, cwd=APP_ROOT)
     try:
         while not STOPPING:
@@ -409,7 +397,7 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception as exc:  # Home Assistant app logs capture stdout/stderr.
+    except Exception as exc:
         log(f"FATAL: {type(exc).__name__}: {exc}")
         traceback.print_exc(file=sys.stdout)
         stop_all()

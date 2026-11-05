@@ -17,5 +17,8 @@ configuration:
   model:
     name: Toon-model
     description: Auto detecteert Toon 1 of Toon 2 vanuit de gekopieerde firmware.
+  restore_firmware_backup:
+    name: Firmwareback-up herstellen
+    description: Herstel de laatst bekende goede firmwareback-up bij het starten van de app.
 network:
   8888/TCP: Toon Mobile-webserver. Alleen voor vertrouwde LAN-apparaten; geen eigen inlogbeveiliging.
