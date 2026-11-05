@@ -2,13 +2,15 @@
 
 A Home Assistant App wrapper for [ToonSoftwareCollective/toonsim](https://github.com/ToonSoftwareCollective/toonsim).
 
+**Version 0.1.1:** the container base image is now Debian Trixie, which provides Python 3.13. This is required because ToonSim’s firmware extraction uses the `tarfile` `filter="data"` argument, which is not available in Python 3.11.
+
 It builds ToonSim inside the app image for `aarch64` and `amd64`, runs the Qt interface on a virtual X display, and provides:
 
 - The simulated Toon screen through Home Assistant Ingress (noVNC).
 - Toon Mobile through the app's HTTP port (`8888`).
 - Persistent simulator data and firmware under the app's `/data` directory.
 
-> Experimental first version. The image is built locally by Home Assistant from the Dockerfile. On a Raspberry Pi 4 this means the first installation compiles ToonSim on the Pi and can take some time. This repository has not yet been verified on physical Home Assistant hardware.
+> Experimental first version. The image is built locally by Home Assistant from the Dockerfile (Debian Trixie / Python 3.13). On a Raspberry Pi 4 this means the first installation compiles ToonSim on the Pi and can take some time. This repository has not yet been verified on physical Home Assistant hardware.
 
 ## Add this repository to Home Assistant
 
