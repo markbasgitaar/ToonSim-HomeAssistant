@@ -2,7 +2,7 @@
 
 Home Assistant App wrapper for [ToonSoftwareCollective/toonsim](https://github.com/ToonSoftwareCollective/toonsim).
 
-## Version 0.2.1
+## Version 0.2.0
 
 - GitHub Actions builds native ARM64 and AMD64 images and publishes multi-architecture tags to GitHub Container Registry (GHCR).
 - Home Assistant downloads the prebuilt image; the Raspberry Pi does not compile ToonSim during installation or updates.
