@@ -2,7 +2,7 @@
 
 Home Assistant App wrapper for [ToonSoftwareCollective/toonsim](https://github.com/ToonSoftwareCollective/toonsim).
 
-## Version 0.2.0
+## Version 0.2.3
 
 - GitHub Actions builds native ARM64 and AMD64 images and publishes multi-architecture tags to GitHub Container Registry (GHCR).
 - Home Assistant downloads the prebuilt image; the Raspberry Pi does not compile ToonSim during installation or updates.
@@ -11,6 +11,8 @@ Home Assistant App wrapper for [ToonSoftwareCollective/toonsim](https://github.c
 - Manual recovery is available with the **Restore firmware backup** configuration option.
 - Logs include UTC timestamps, startup stages, architecture, resolution, backup/restore events, and exception details. Passwords are not printed.
 - Toon 1 resolution remains **800×480**; Toon 2 remains **1024×600**.
+- The noVNC touchscreen uses **Local scaling (shrink only)**: it scales down on small viewports, but never enlarges a Toon 1 or Toon 2 beyond its real resolution on larger screens.
+- Custom apps are stored in `/share/ToonSim/apps`, visible through Samba NAS's normal **share** SMB share. Existing apps are migrated automatically, and apps survive app updates and reinstallations.
 - All configuration options have defaults and schema entries, so they are shown directly in Home Assistant Configuration.
 
 ## GitHub Container Registry
@@ -41,6 +43,26 @@ The workflow uses native GitHub-hosted ARM64 (`ubuntu-24.04-arm`) and AMD64 (`ub
 
 The firmware pull reads from the physical Toon over SSH. It does not install anything on the Toon or change its settings. The password is not written to the app log.
 
+## Custom apps
+
+Custom apps live in `/share/ToonSim/apps` and are visible through Samba NAS's
+**share** SMB share:
+
+```
+\\<Home Assistant IP>\share\ToonSim\apps
+```
+
+On Linux or macOS use `smb://<Home Assistant IP>/share/ToonSim/apps`. Make sure
+the **share** share is enabled in Samba NAS; no extra Samba configuration is
+needed. Each app goes in its own folder, for example
+`apps/myapp/MyappApp.qml`. Restart the ToonSim app after adding or changing an
+app; the simulator loads the folder at startup. Apps previously stored under
+`/data/toonsim/apps` are copied once automatically on upgrade, and apps in
+`/share` survive app updates and reinstallations.
+
+Only place apps you trust in this folder: app scripts run inside the ToonSim
+container.
+
 ## Backups and recovery
 
 Working firmware is stored in `/data/toonsim/firmware`; compressed snapshots are stored in `/data/toonsim/backups/`. The latest and previous snapshots are retained across app-image updates. Firmware and backups are deliberately not included in this source archive or Docker image.
@@ -53,6 +75,7 @@ Create a Home Assistant backup before a major app update.
 
 - The touchscreen is served through authenticated Home Assistant Ingress.
 - Port `8888` serves Toon Mobile without built-in authentication. Keep it on a trusted LAN and do not forward it to the internet. Disable the port mapping if you only use the touchscreen.
+- The app maps Home Assistant's `/share` folder read-write to store custom apps in `/share/ToonSim/apps`; it does not request other host folders.
 - The container does not need host networking, USB access, privileged mode, or Docker socket access.
 - Do not publish or share your own Toon `firmware` or `backups` directories.
 

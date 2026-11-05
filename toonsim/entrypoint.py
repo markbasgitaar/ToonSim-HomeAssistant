@@ -21,6 +21,12 @@ from typing import Sequence
 APP_ROOT = Path("/opt/toonsim")
 DATA_ROOT = Path("/data/toonsim")
 OPTIONS_FILE = Path("/data/options.json")
+SHARE_ROOT = Path("/share")
+SHARED_APPS_ROOT = SHARE_ROOT / "ToonSim"
+SHARED_APPS_DIR = SHARED_APPS_ROOT / "apps"
+LEGACY_APPS_DIR = DATA_ROOT / "apps"
+APPS_MIGRATION_MARKER = DATA_ROOT / ".apps-share-migrated"
+APPS_README = "PUT-YOUR-APPS-HERE.txt"
 FIRMWARE_DIR = DATA_ROOT / "firmware"
 BACKUP_DIR = DATA_ROOT / "backups"
 BACKUP_CURRENT = BACKUP_DIR / "firmware-last-good.tar.gz"
@@ -54,18 +60,109 @@ def read_options() -> dict:
     return value
 
 
+def directory_has_apps(path: Path) -> bool:
+    """True when an apps folder has an app (a folder or a ToonStore symlink)."""
+    try:
+        return any(
+            item.name != APPS_README and (item.is_dir() or item.is_symlink())
+            for item in path.iterdir()
+        )
+    except OSError:
+        return False
+
+
+def copy_apps_tree(source: Path, target: Path) -> bool:
+    """Copy apps, keeping ToonStore's relative version symlinks intact."""
+    try:
+        shutil.copytree(source, target, dirs_exist_ok=True, symlinks=True)
+    except (OSError, shutil.Error) as exc:
+        log(f"WARNING: could not copy apps from {source} to {target}: {exc}")
+        return False
+    return True
+
+
+def ensure_apps_directory() -> Path:
+    """Return the apps folder, preferring the HA share so SMB users can edit it.
+
+    Apps used to live in /data/toonsim/apps, which is private to the app. They
+    now live in /share/ToonSim/apps, which the Samba NAS app exposes through
+    its normal "share" SMB share. The old folder is copied once, and the apps
+    bundled in the image are used when neither location has apps yet.
+    """
+    if not SHARE_ROOT.is_dir():
+        log("WARNING: /share is not mounted; apps stay in /data/toonsim/apps and are not visible over SMB")
+        LEGACY_APPS_DIR.mkdir(parents=True, exist_ok=True)
+        return LEGACY_APPS_DIR
+
+    try:
+        SHARED_APPS_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        log(f"WARNING: cannot create {SHARED_APPS_DIR}: {exc}; apps stay in {LEGACY_APPS_DIR}")
+        LEGACY_APPS_DIR.mkdir(parents=True, exist_ok=True)
+        return LEGACY_APPS_DIR
+
+    if not APPS_MIGRATION_MARKER.exists():
+        initialized = directory_has_apps(SHARED_APPS_DIR)
+        if (not initialized
+                and LEGACY_APPS_DIR.is_dir()
+                and not LEGACY_APPS_DIR.is_symlink()
+                and directory_has_apps(LEGACY_APPS_DIR)):
+            log(f"Copying existing apps from {LEGACY_APPS_DIR} to {SHARED_APPS_DIR}")
+            initialized = copy_apps_tree(LEGACY_APPS_DIR, SHARED_APPS_DIR)
+        elif not initialized:
+            bundled = APP_ROOT / "apps"
+            if bundled.is_dir() and not bundled.is_symlink() and directory_has_apps(bundled):
+                log(f"Copying the apps bundled in the image to {SHARED_APPS_DIR}")
+                initialized = copy_apps_tree(bundled, SHARED_APPS_DIR)
+        if initialized:
+            try:
+                APPS_MIGRATION_MARKER.write_text(
+                    f"Apps are stored in {SHARED_APPS_DIR} since "
+                    f"{datetime.now(timezone.utc).isoformat()}\n",
+                    encoding="utf-8",
+                )
+            except OSError as exc:
+                log(f"WARNING: cannot write {APPS_MIGRATION_MARKER}: {exc}")
+
+    readme = SHARED_APPS_DIR / APPS_README
+    if not readme.exists():
+        try:
+            readme.write_text(
+                "Each app goes in its own folder, as in /qmf/qml/apps on the Toon:\n"
+                "  apps/<app>/<App>App.qml\n"
+                "Restart the ToonSim app after adding or changing an app.\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            log(f"WARNING: cannot write {readme}: {exc}")
+
+    return SHARED_APPS_DIR
+
+
+def link_app_root(name: str, target: Path) -> None:
+    link = APP_ROOT / name
+    if link.is_symlink() or link.is_file():
+        link.unlink()
+    elif link.exists():
+        shutil.rmtree(link)
+    link.symlink_to(target, target_is_directory=True)
+
+
 def ensure_persistent_directories() -> None:
     DATA_ROOT.mkdir(parents=True, exist_ok=True)
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    for name in ("firmware", "data", "apps"):
-        target = DATA_ROOT / name
-        target.mkdir(parents=True, exist_ok=True)
-        link = APP_ROOT / name
-        if link.is_symlink() or link.is_file():
-            link.unlink()
-        elif link.exists():
-            shutil.rmtree(link)
-        link.symlink_to(target, target_is_directory=True)
+    firmware_dir = DATA_ROOT / "firmware"
+    data_dir = DATA_ROOT / "data"
+    firmware_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    apps_dir = ensure_apps_directory()
+    link_app_root("firmware", firmware_dir)
+    link_app_root("data", data_dir)
+    link_app_root("apps", apps_dir)
+    log(f"Apps folder: {apps_dir}")
+    if apps_dir == SHARED_APPS_DIR:
+        log("Apps are visible in the Samba NAS 'share' SMB share under ToonSim/apps")
 
 
 def firmware_is_valid(path: Path = FIRMWARE_DIR) -> bool:

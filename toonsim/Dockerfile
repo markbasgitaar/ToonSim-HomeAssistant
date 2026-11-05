@@ -62,10 +62,13 @@ RUN git clone --depth 1 --branch "${TOONSIM_REF}" \
 COPY run.sh /run.sh
 COPY entrypoint.py /opt/ha-toonsim/entrypoint.py
 COPY nginx.conf /etc/nginx/conf.d/toonsim.conf
+COPY patch-novnc.py /opt/ha-toonsim/patch-novnc.py
+COPY toonsim-downscale.js /usr/share/novnc/app/toonsim-downscale.js
 
 RUN chmod 0755 /run.sh /opt/toonsim/toonsim.sh \
     && rm -f /etc/nginx/sites-enabled/default \
-    && mkdir -p /data/toonsim /run/nginx /opt/ha-toonsim
+    && mkdir -p /data/toonsim /run/nginx /opt/ha-toonsim \
+    && python3 /opt/ha-toonsim/patch-novnc.py
 
 WORKDIR /opt/toonsim
 CMD ["/run.sh"]

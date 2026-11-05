@@ -1,9 +1,9 @@
 name: "ToonSim"
 slug: "local_toonsim"
-version: "0.2.1"
+version: "0.2.3"
 description: >-
   Simulate a Toon thermostat in Home Assistant OS, with a browser-based touchscreen
-  and Toon Mobile.
+  and Toon Mobile. Custom apps are editable through /share/ToonSim/apps.
 url: "https://github.com/ToonSoftwareCollective/toonsim"
 image: "ghcr.io/markbasgitaar/toonsim-homeassistant"
 arch:
@@ -15,7 +15,7 @@ boot: auto
 init: false
 ingress: true
 ingress_port: 6080
-ingress_entry: "/vnc.html?autoconnect=true&resize=scale"
+ingress_entry: "/vnc.html?autoconnect=true"
 panel_icon: "mdi:thermostat"
 panel_title: "ToonSim"
 panel_admin: true
@@ -26,6 +26,8 @@ ports_description:
   8888/tcp: "Toon Mobile HTTP (LAN only; no built-in authentication)"
 backup: cold
 timeout: 30
+map:
+  - share:rw
 options:
   toon_ip: ""
   toon_username: "root"
